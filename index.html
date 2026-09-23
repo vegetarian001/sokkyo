@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1,
+maximum-scale=1,
+user-scalable=no,
+viewport-fit=cover">
+
+<meta name="apple-mobile-web-app-capable"
+content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style"
+content="black-translucent">
+
+<meta name="apple-mobile-web-app-title"
+content="Strich Camera">
+
+<title>Strich Camera</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:white;
+    font-family:-apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
+}
+
+#camera{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#000;
+    transform-origin:center center;
+}
+
+#reticle{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    color:#00ff55;
+    overflow:hidden;
+}
+
+.centerH{
+    position:absolute;
+    left:0;
+    right:0;
+    top:50%;
+    height:1px;
+    background:#00ff55;
+}
+
+.centerV{
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:50%;
+    width:1px;
+    background:#00ff55;
+}
+
+.centerCircle{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:10px;
+    height:10px;
+    transform:translate(-50%,-50%);
+    border:1px solid #00ff55;
+    border-radius:50%;
+}
+
+#horizontalScale{
+    position:absolute;
+    left:50%;
+    bottom:16%;
+    width:100%;
+    height:60px;
+    transform:translateX(-50%);
+}
+
+#verticalScale{
+    position:absolute;
+    left:50%;
+    top:7%;
+    width:60px;
+    height:86%;
+    transform:translateX(-50%);
+}
+
+.tickH{
+    position:absolute;
+    top:0;
+    width:1px;
+    background:#00ff55;
+}
+
+.tickV{
+    position:absolute;
+    left:0;
+    height:1px;
+    background:#00ff55;
+}
+
+.scaleNumber{
+    position:absolute;
+    color:#baffc8;
+    font-size:10px;
+    text-shadow:0 1px 3px #000;
+    white-space:nowrap;
+}
+
+#readout{
+    position:absolute;
+    z-index:15;
+    left:50%;
+    top:calc(50% + 18px);
+    transform:translateX(-50%);
+    padding:4px 8px;
+    border-radius:6px;
+    background:rgba(0,0,0,.65);
+    color:#baffc8;
+    font-size:13px;
+    text-shadow:0 1px 3px #000;
+}
+
+#zoomButtons{
+    position:absolute;
+    z-index:20;
+    top:calc(
+        env(safe-area-inset-top)
+        + 10px
+    );
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:center;
+    gap:7px;
+}
+
+.zoomButton{
+    padding:9px 13px;
+    border:1px solid rgba(255,255,255,.5);
+    border-radius:10px;
+    background:rgba(0,0,0,.65);
+    color:white;
+    font-size:14px;
+}
+
+.zoomButton.active{
+    background:rgba(0,170,70,.8);
+    border-color:white;
+}
+
+#status{
+    position:absolute;
+    z-index:20;
+    left:10px;
+    bottom:calc(
+        env(safe-area-inset-bottom)
+        + 105px
+    );
+    padding:6px 9px;
+    border-radius:7px;
+    background:rgba(0,0,0,.6);
+    font-size:12px;
+}
+
+#bottom{
+    position:absolute;
+    z-index:20;
+    left:0;
+    right:0;
+    bottom:calc(
+        env(safe-area-inset-bottom)
+        + 18px
+    );
+    display:flex;
+    justify-content:center;
+}
+
+#shutter{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    border:5px solid rgba(255,255,255,.8);
+    background:white;
+}
+
+#preview{
+    position:absolute;
+    z-index:100;
+    inset:0;
+    background:#000;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:15px;
+}
+
+#previewImage{
+    max-width:100%;
+    max-height:80%;
+    object-fit:contain;
+}
+
+#closePreview{
+    padding:10px 24px;
+    border:1px solid white;
+    border-radius:10px;
+    background:rgba(255,255,255,.15);
+    color:white;
+    font-size:16px;
+}
+
+</style>
+</head>
+
+<body>
+
+<video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+</video>
+
+<div id="zoomButtons">
+
+    <button
+        class="zoomButton active"
+        data-zoom="1">
+        1×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="3">
+        3×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="5">
+        5×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="7">
+        7×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="9">
+        9×
+    </button>
+
+</div>
+
+<div id="reticle">
+
+    <div class="centerH"></div>
+    <div class="centerV"></div>
+    <div class="centerCircle"></div>
+
+    <div id="horizontalScale"></div>
+    <div id="verticalScale"></div>
+
+</div>
+
+<div id="readout">
+    0.0 Strich
+</div>
+
+<div id="status">
+    カメラ起動中…
+</div>
+
+<div id="bottom">
+    <button id="shutter"></button>
+</div>
+
+<div id="preview">
+
+    <img
+        id="previewImage"
+        alt="撮影した写真">
+
+    <button id="closePreview">
+        戻る
+    </button>
+
+</div>
+
+<script>
+
+const video =
+    document.getElementById("camera");
+
+const horizontalScale =
+    document.getElementById(
+        "horizontalScale"
+    );
+
+const verticalScale =
+    document.getElementById(
+        "verticalScale"
+    );
+
+const status =
+    document.getElementById("status");
+
+const readout =
+    document.getElementById("readout");
+
+
+let stream = null;
+let cameraTrack = null;
+let currentZoom = 1;
+
+
+/* =====================================================
+   テスト用校正
+=====================================================
+
+   今回の実測：
+
+   高さ = 0.75 m
+   距離 = 5.6 m
+
+   実角度 ≒ 134 Strich
+
+   アプリ表示 = 3 Strich
+
+   134 / 3 ≒ 44.7
+
+   そのため、従来の目盛り間隔を
+   44.7分の1にしたテスト版。
+
+===================================================== */
+
+
+/*
+   元の校正後間隔
+
+   4 × 5.13 = 20.52 px
+*/
+
+
+const OLD_BASE_SPACING = 4;
+
+const CALIBRATION_FACTOR = 5.13;
+
+const OLD_CALIBRATED_SPACING =
+    OLD_BASE_SPACING *
+    CALIBRATION_FACTOR;
+
+
+/*
+   今回の追加補正
+
+   20.52 / 44.7
+   ≒ 0.459 px
+*/
+
+const TEST_COMPRESSION = 44.7;
+
+const BASE_SPACING =
+    OLD_CALIBRATED_SPACING /
+    TEST_COMPRESSION;
+
+
+/*
+   表示範囲
+*/
+
+const MIN_STRICH = -500;
+
+const MAX_STRICH = 500;
+
+
+/*
+   1 Strichごと
+*/
+
+const STEP_STRICH = 1;
+
+
+/* =====================================================
+   数値
+===================================================== */
+
+function formatStrich(value){
+
+    return Number(value)
+        .toFixed(1);
+
+}
+
+
+/* =====================================================
+   レティクル生成
+===================================================== */
+
+function createReticle(){
+
+    horizontalScale.innerHTML = "";
+
+    verticalScale.innerHTML = "";
+
+
+    for(
+        let strich = MIN_STRICH;
+        strich <= MAX_STRICH;
+        strich += STEP_STRICH
+    ){
+
+        const major =
+            strich % 10 === 0;
+
+        const medium =
+            strich % 5 === 0;
+
+
+        /*
+        ========================
+        横
+        ========================
+        */
+
+        const x =
+            strich *
+            BASE_SPACING *
+            currentZoom;
+
+
+        const tickH =
+            document.createElement(
+                "div"
+            );
+
+        tickH.className =
+            "tickH";
+
+        tickH.style.left =
+            `calc(50% + ${x}px)`;
+
+        tickH.style.height =
+            major
+                ? "22px"
+                : medium
+                    ? "17px"
+                    : "10px";
+
+        tickH.style.transform =
+            "translateX(-50%)";
+
+        horizontalScale.appendChild(
+            tickH
+        );
+
+
+        if(
+            major &&
+            strich !== 0
+        ){
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+            number.className =
+                "scaleNumber";
+
+            number.textContent =
+                formatStrich(
+                    Math.abs(strich)
+                );
+
+            number.style.left =
+                `calc(50% + ${x}px)`;
+
+            number.style.top =
+                "25px";
+
+            number.style.transform =
+                "translateX(-50%)";
+
+            horizontalScale.appendChild(
+                number
+            );
+
+        }
+
+
+        /*
+        ========================
+        縦
+        ========================
+        */
+
+        const y =
+            strich *
+            BASE_SPACING *
+            currentZoom;
+
+
+        const tickV =
+            document.createElement(
+                "div"
+            );
+
+        tickV.className =
+            "tickV";
+
+        tickV.style.top =
+            `calc(50% + ${-y}px)`;
+
+        tickV.style.width =
+            major
+                ? "22px"
+                : medium
+                    ? "17px"
+                    : "10px";
+
+        tickV.style.transform =
+            "translateY(-50%)";
+
+        verticalScale.appendChild(
+            tickV
+        );
+
+
+        if(
+            major &&
+            strich !== 0
+        ){
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+            number.className =
+                "scaleNumber";
+
+            number.textContent =
+                formatStrich(
+                    Math.abs(strich)
+                );
+
+            number.style.top =
+                `calc(50% + ${-y}px)`;
+
+            number.style.left =
+                "25px";
+
+            number.style.transform =
+                "translateY(-50%)";
+
+            verticalScale.appendChild(
+                number
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   カメラ
+===================================================== */
+
+async function startCamera(){
+
+    try{
+
+        stream =
+            await navigator
+                .mediaDevices
+                .getUserMedia({
+
+                    video:{
+                        facingMode:{
+                            ideal:"environment"
+                        }
+                    },
+
+                    audio:false
+
+                });
+
+
+        video.srcObject =
+            stream;
+
+        cameraTrack =
+            stream
+                .getVideoTracks()[0];
+
+        await video.play();
+
+        status.textContent =
+            "カメラOK";
+
+
+    }catch(error){
+
+        console.error(error);
+
+        status.textContent =
+            "カメラへのアクセスを許可してください";
+
+    }
+
+}
+
+
+/* =====================================================
+   倍率
+===================================================== */
+
+async function changeZoom(value){
+
+    currentZoom = value;
+
+
+    document
+        .querySelectorAll(
+            ".zoomButton"
+        )
+        .forEach(button =>{
+
+            button.classList.toggle(
+
+                "active",
+
+                Number(
+                    button.dataset.zoom
+                ) === value
+
+            );
+
+        });
+
+
+    let hardwareZoom = false;
+
+
+    try{
+
+        if(
+            cameraTrack &&
+            cameraTrack.getCapabilities
+        ){
+
+            const capabilities =
+                cameraTrack
+                    .getCapabilities();
+
+
+            if(
+                capabilities.zoom
+            ){
+
+                const min =
+                    capabilities.zoom.min;
+
+                const max =
+                    capabilities.zoom.max;
+
+
+                const actualZoom =
+                    Math.max(
+                        min,
+                        Math.min(
+                            max,
+                            value
+                        )
+                    );
+
+
+                await cameraTrack
+                    .applyConstraints({
+
+                        advanced:[
+                            {
+                                zoom:
+                                    actualZoom
+                            }
+                        ]
+
+                    });
+
+
+                hardwareZoom = true;
+
+            }
+
+        }
+
+    }catch(error){
+
+        hardwareZoom = false;
+
+    }
+
+
+    if(
+        hardwareZoom
+    ){
+
+        video.style.transform =
+            "none";
+
+    }else{
+
+        video.style.transform =
+            `scale(${value})`;
+
+    }
+
+
+    video.dataset.hardwareZoom =
+        hardwareZoom
+            ? "true"
+            : "false";
+
+
+    createReticle();
+
+
+    status.textContent =
+        `倍率 ${value}×`;
+
+}
+
+
+/* =====================================================
+   倍率ボタン
+===================================================== */
+
+document
+    .querySelectorAll(
+        ".zoomButton"
+    )
+    .forEach(button =>{
+
+        button.addEventListener(
+            "click",
+            () =>{
+
+                changeZoom(
+                    Number(
+                        button.dataset.zoom
+                    )
+                );
+
+            }
+        );
+
+    });
+
+
+/* =====================================================
+   写真用カメラ描画
+===================================================== */
+
+function drawVisibleVideo(
+    ctx,
+    canvasWidth,
+    canvasHeight
+){
+
+    const sourceWidth =
+        video.videoWidth;
+
+    const sourceHeight =
+        video.videoHeight;
+
+
+    if(
+        !sourceWidth ||
+        !sourceHeight
+    ){
+
+        return;
+
+    }
+
+
+    const targetRatio =
+        canvasWidth /
+        canvasHeight;
+
+    const sourceRatio =
+        sourceWidth /
+        sourceHeight;
+
+
+    let cropWidth =
+        sourceWidth;
+
+    let cropHeight =
+        sourceHeight;
+
+
+    if(
+        sourceRatio >
+        targetRatio
+    ){
+
+        cropWidth =
+            sourceHeight *
+            targetRatio;
+
+    }else{
+
+        cropHeight =
+            sourceWidth /
+            targetRatio;
+
+    }
+
+
+    const hardwareZoom =
+        video.dataset.hardwareZoom ===
+        "true";
+
+
+    if(
+        !hardwareZoom
+    ){
+
+        cropWidth /=
+            currentZoom;
+
+        cropHeight /=
+            currentZoom;
+
+    }
+
+
+    const sx =
+        (
+            sourceWidth -
+            cropWidth
+        ) / 2;
+
+    const sy =
+        (
+            sourceHeight -
+            cropHeight
+        ) / 2;
+
+
+    ctx.drawImage(
+
+        video,
+
+        sx,
+        sy,
+
+        cropWidth,
+        cropHeight,
+
+        0,
+        0,
+
+        canvasWidth,
+        canvasHeight
+
+    );
+
+}
+
+
+/* =====================================================
+   写真撮影
+===================================================== */
+
+document
+    .getElementById("shutter")
+    .addEventListener(
+        "click",
+        () =>{
+
+            if(
+                !video.videoWidth ||
+                !video.videoHeight
+            ){
+
+                return;
+
+            }
+
+
+            const displayWidth =
+                window.innerWidth;
+
+            const displayHeight =
+                window.innerHeight;
+
+
+            const aspect =
+                displayWidth /
+                displayHeight;
+
+
+            let width =
+                video.videoWidth;
+
+            let height =
+                width /
+                aspect;
+
+
+            if(
+                height >
+                video.videoHeight
+            ){
+
+                height =
+                    video.videoHeight;
+
+                width =
+                    height *
+                    aspect;
+
+            }
+
+
+            const canvas =
+                document.createElement(
+                    "canvas"
+                );
+
+
+            canvas.width =
+                Math.round(width);
+
+            canvas.height =
+                Math.round(height);
+
+
+            const ctx =
+                canvas.getContext(
+                    "2d"
+                );
+
+
+            drawVisibleVideo(
+                ctx,
+                canvas.width,
+                canvas.height
+            );
+
+
+            const cx =
+                canvas.width / 2;
+
+            const cy =
+                canvas.height / 2;
+
+
+            const canvasScale =
+                canvas.width /
+                displayWidth;
+
+
+            /*
+               今回のテストでは
+               BASE_SPACING自体を44.7分の1
+               にしている。
+            */
+
+            const spacing =
+                BASE_SPACING *
+                currentZoom *
+                canvasScale;
+
+
+            ctx.strokeStyle =
+                "rgba(0,255,80,.85)";
+
+            ctx.fillStyle =
+                "rgba(190,255,205,.95)";
+
+            ctx.lineWidth =
+                Math.max(
+                    1,
+                    canvas.width / 1600
+                );
+
+
+            /*
+               中央横線
+            */
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                0,
+                cy
+            );
+
+            ctx.lineTo(
+                canvas.width,
+                cy
+            );
+
+
+            /*
+               中央縦線
+            */
+
+            ctx.moveTo(
+                cx,
+                0
+            );
+
+            ctx.lineTo(
+                cx,
+                canvas.height
+            );
+
+            ctx.stroke();
+
+
+            /*
+            ========================
+            目盛り
+            ========================
+            */
+
+            for(
+                let strich = MIN_STRICH;
+                strich <= MAX_STRICH;
+                strich += STEP_STRICH
+            ){
+
+                const major =
+                    strich % 10 === 0;
+
+                const medium =
+                    strich % 5 === 0;
+
+
+                /*
+                横
+                */
+
+                const x =
+                    cx +
+                    strich *
+                    spacing;
+
+
+                if(
+                    x >= 0 &&
+                    x <= canvas.width
+                ){
+
+                    const tickHeight =
+                        major
+                            ? 22
+                            : medium
+                                ? 17
+                                : 10;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        x,
+                        cy -
+                        tickHeight *
+                        canvasScale
+                    );
+
+                    ctx.lineTo(
+                        x,
+                        cy +
+                        tickHeight *
+                        canvasScale
+                    );
+
+                    ctx.stroke();
+
+
+                    if(
+                        major &&
+                        strich !== 0
+                    ){
+
+                        ctx.font =
+                            `${Math.max(
+                                14,
+                                canvas.width / 90
+                            )}px sans-serif`;
+
+
+                        ctx.fillText(
+
+                            formatStrich(
+                                Math.abs(strich)
+                            ),
+
+                            x +
+                            4 *
+                            canvasScale,
+
+                            cy +
+                            38 *
+                            canvasScale
+
+                        );
+
+                    }
+
+                }
+
+
+                /*
+                縦
+                */
+
+                const y =
+                    cy -
+                    strich *
+                    spacing;
+
+
+                if(
+                    y >= 0 &&
+                    y <= canvas.height
+                ){
+
+                    const tickWidth =
+                        major
+                            ? 22
+                            : medium
+                                ? 17
+                                : 10;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        cx -
+                        tickWidth *
+                        canvasScale,
+                        y
+                    );
+
+                    ctx.lineTo(
+                        cx +
+                        tickWidth *
+                        canvasScale,
+                        y
+                    );
+
+                    ctx.stroke();
+
+
+                    if(
+                        major &&
+                        strich !== 0
+                    ){
+
+                        ctx.font =
+                            `${Math.max(
+                                14,
+                                canvas.width / 90
+                            )}px sans-serif`;
+
+
+                        ctx.fillText(
+
+                            formatStrich(
+                                Math.abs(strich)
+                            ),
+
+                            cx +
+                            30 *
+                            canvasScale,
+
+                            y +
+                            5 *
+                            canvasScale
+
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+            /*
+            ========================
+            中央円
+            ========================
+            */
+
+            ctx.beginPath();
+
+            ctx.arc(
+                cx,
+                cy,
+                6 * canvasScale,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.stroke();
+
+
+            /*
+            ========================
+            中央値
+            ========================
+            */
+
+            ctx.font =
+                `${Math.max(
+                    14,
+                    canvas.width / 90
+                )}px sans-serif`;
+
+
+            ctx.fillText(
+                "0.0",
+                cx + 12 * canvasScale,
+                cy - 12 * canvasScale
+            );
+
+
+            /*
+            ========================
+            プレビュー
+            ========================
+            */
+
+            const image =
+                document.getElementById(
+                    "previewImage"
+                );
+
+
+            image.src =
+                canvas.toDataURL(
+                    "image/jpeg",
+                    0.92
+                );
+
+
+            document
+                .getElementById(
+                    "preview"
+                )
+                .style.display =
+                    "flex";
+
+        }
+    );
+
+
+/* =====================================================
+   プレビューを閉じる
+===================================================== */
+
+document
+    .getElementById(
+        "closePreview"
+    )
+    .addEventListener(
+        "click",
+        () =>{
+
+            document
+                .getElementById(
+                    "preview"
+                )
+                .style.display =
+                    "none";
+
+        }
+    );
+
+
+/* =====================================================
+   起動
+===================================================== */
+
+createReticle();
+
+startCamera();
+
+</script>
+
+</body>
+</html>
