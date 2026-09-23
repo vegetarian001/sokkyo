@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1,
+maximum-scale=1,
+user-scalable=no,
+viewport-fit=cover">
+
+<meta name="apple-mobile-web-app-capable"
+content="yes">
+
+<meta name="apple-mobile-web-app-status-bar-style"
+content="black-translucent">
+
+<meta name="apple-mobile-web-app-title"
+content="Strich Camera">
+
+<title>Strich Camera</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:white;
+    font-family:-apple-system,
+        BlinkMacSystemFont,
+        sans-serif;
+}
+
+#camera{
+    position:absolute;
+    inset:0;
+
+    width:100%;
+    height:100%;
+
+    object-fit:cover;
+
+    background:#000;
+}
+
+/* =========================
+   レティクル
+========================= */
+
+#reticle{
+    position:absolute;
+    inset:0;
+
+    pointer-events:none;
+
+    color:#00ff55;
+
+    overflow:hidden;
+}
+
+/* 中央横線 */
+
+.centerH{
+    position:absolute;
+
+    left:0;
+    right:0;
+
+    top:50%;
+
+    height:1px;
+
+    background:#00ff55;
+}
+
+/* 中央縦線 */
+
+.centerV{
+    position:absolute;
+
+    top:0;
+    bottom:0;
+
+    left:50%;
+
+    width:1px;
+
+    background:#00ff55;
+}
+
+/* 中央 */
+
+.centerCircle{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:10px;
+    height:10px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border:
+        1px solid #00ff55;
+
+    border-radius:50%;
+}
+
+/* =========================
+   横シュトリヒ
+========================= */
+
+#horizontalScale{
+
+    position:absolute;
+
+    left:50%;
+
+    bottom:16%;
+
+    width:100%;
+
+    height:60px;
+
+    transform:
+        translateX(-50%);
+}
+
+/* =========================
+   縦シュトリヒ
+========================= */
+
+#verticalScale{
+
+    position:absolute;
+
+    left:50%;
+
+    top:7%;
+
+    width:60px;
+
+    height:86%;
+
+    transform:
+        translateX(-50%);
+}
+
+/* =========================
+   目盛り
+========================= */
+
+.tickH{
+
+    position:absolute;
+
+    top:0;
+
+    width:1px;
+
+    background:#00ff55;
+}
+
+.tickV{
+
+    position:absolute;
+
+    left:0;
+
+    height:1px;
+
+    background:#00ff55;
+}
+
+.scaleNumber{
+
+    position:absolute;
+
+    color:#baffc8;
+
+    font-size:10px;
+
+    text-shadow:
+        0 1px 3px #000;
+
+    white-space:nowrap;
+}
+
+/* =========================
+   上部ボタン
+========================= */
+
+#zoomButtons{
+
+    position:absolute;
+
+    z-index:20;
+
+    top:
+        calc(
+            env(safe-area-inset-top)
+            + 10px
+        );
+
+    left:0;
+    right:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:7px;
+}
+
+.zoomButton{
+
+    padding:
+        9px 13px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.5);
+
+    border-radius:10px;
+
+    background:
+        rgba(0,0,0,.65);
+
+    color:white;
+
+    font-size:14px;
+}
+
+.zoomButton.active{
+
+    background:
+        rgba(0,170,70,.8);
+
+    border-color:white;
+}
+
+/* =========================
+   ステータス
+========================= */
+
+#status{
+
+    position:absolute;
+
+    z-index:20;
+
+    left:10px;
+
+    bottom:
+        calc(
+            env(safe-area-inset-bottom)
+            + 105px
+        );
+
+    padding:
+        6px 9px;
+
+    border-radius:7px;
+
+    background:
+        rgba(0,0,0,.6);
+
+    font-size:12px;
+}
+
+/* =========================
+   シャッター
+========================= */
+
+#bottom{
+
+    position:absolute;
+
+    z-index:20;
+
+    left:0;
+    right:0;
+
+    bottom:
+        calc(
+            env(safe-area-inset-bottom)
+            + 18px
+        );
+
+    display:flex;
+
+    justify-content:center;
+}
+
+#shutter{
+
+    width:70px;
+    height:70px;
+
+    border-radius:50%;
+
+    border:
+        5px solid
+        rgba(255,255,255,.8);
+
+    background:white;
+}
+
+/* =========================
+   写真確認
+========================= */
+
+#preview{
+
+    position:absolute;
+
+    z-index:100;
+
+    inset:0;
+
+    background:#000;
+
+    display:none;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:15px;
+}
+
+#previewImage{
+
+    max-width:100%;
+    max-height:80%;
+
+    object-fit:contain;
+}
+
+#closePreview{
+
+    padding:
+        10px 24px;
+
+    border:
+        1px solid white;
+
+    border-radius:10px;
+
+    background:
+        rgba(255,255,255,.15);
+
+    color:white;
+
+    font-size:16px;
+}
+
+</style>
+</head>
+
+<body>
+
+<video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+</video>
+
+
+<!-- =========================
+     倍率
+========================= -->
+
+<div id="zoomButtons">
+
+    <button
+        class="zoomButton active"
+        data-zoom="1">
+        1×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="3">
+        3×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="5">
+        5×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="7">
+        7×
+    </button>
+
+    <button
+        class="zoomButton"
+        data-zoom="9">
+        9×
+    </button>
+
+</div>
+
+
+<!-- =========================
+     レティクル
+========================= -->
+
+<div id="reticle">
+
+    <div class="centerH"></div>
+
+    <div class="centerV"></div>
+
+    <div class="centerCircle"></div>
+
+    <div id="horizontalScale"></div>
+
+    <div id="verticalScale"></div>
+
+</div>
+
+
+<div id="status">
+    カメラ起動中…
+</div>
+
+
+<!-- シャッター -->
+
+<div id="bottom">
+
+    <button id="shutter"></button>
+
+</div>
+
+
+<!-- 写真確認 -->
+
+<div id="preview">
+
+    <img
+        id="previewImage"
+        alt="撮影した写真">
+
+    <button id="closePreview">
+        戻る
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   基本設定
+===================================================== */
+
+const video =
+    document.getElementById("camera");
+
+const reticle =
+    document.getElementById("reticle");
+
+const horizontalScale =
+    document.getElementById(
+        "horizontalScale"
+    );
+
+const verticalScale =
+    document.getElementById(
+        "verticalScale"
+    );
+
+const status =
+    document.getElementById("status");
+
+
+let stream = null;
+
+let cameraTrack = null;
+
+let currentZoom = 1;
+
+
+/*
+    1シュトリヒあたりの
+    基本的な画面上の距離。
+
+    倍率1×を基準にする。
+*/
+
+const BASE_SPACING = 4;
+
+
+/* =====================================================
+   レティクル生成
+===================================================== */
+
+function createReticle(){
+
+    horizontalScale.innerHTML = "";
+    verticalScale.innerHTML = "";
+
+
+    /*
+        -50 ～ +50 シュトリヒ
+        5刻み
+    */
+
+    for(
+        let strich = -50;
+        strich <= 50;
+        strich += 5
+    ){
+
+        /*
+        ========================
+        横
+        ========================
+        */
+
+        const x =
+            strich *
+            BASE_SPACING *
+            currentZoom;
+
+
+        const tickH =
+            document.createElement("div");
+
+        tickH.className =
+            "tickH";
+
+
+        tickH.style.left =
+            `calc(50% + ${x}px)`;
+
+
+        /*
+            10刻みは長くする
+        */
+
+        const major =
+            strich % 10 === 0;
+
+
+        tickH.style.height =
+            major
+            ? "22px"
+            : "12px";
+
+
+        tickH.style.transform =
+            "translateX(-50%)";
+
+
+        horizontalScale.appendChild(
+            tickH
+        );
+
+
+        /*
+        ========================
+        横の数字
+        ========================
+        */
+
+        if(
+            major &&
+            strich !== 0
+        ){
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+            number.className =
+                "scaleNumber";
+
+
+            /*
+                数字は
+                シュトリヒ表記
+            */
+
+            number.textContent =
+                Math.abs(strich);
+
+
+            number.style.left =
+                `calc(50% + ${x}px)`;
+
+
+            number.style.top =
+                "25px";
+
+
+            number.style.transform =
+                "translateX(-50%)";
+
+
+            horizontalScale.appendChild(
+                number
+            );
+        }
+
+
+        /*
+        ========================
+        縦
+        ========================
+        */
+
+        const y =
+            strich *
+            BASE_SPACING *
+            currentZoom;
+
+
+        const tickV =
+            document.createElement("div");
+
+        tickV.className =
+            "tickV";
+
+
+        tickV.style.top =
+            `calc(50% + ${-y}px)`;
+
+
+        tickV.style.width =
+            major
+            ? "22px"
+            : "12px";
+
+
+        tickV.style.transform =
+            "translateY(-50%)";
+
+
+        verticalScale.appendChild(
+            tickV
+        );
+
+
+        /*
+        ========================
+        縦の数字
+        ========================
+        */
+
+        if(
+            major &&
+            strich !== 0
+        ){
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+            number.className =
+                "scaleNumber";
+
+
+            number.textContent =
+                Math.abs(strich);
+
+
+            number.style.top =
+                `calc(50% + ${-y}px)`;
+
+
+            number.style.left =
+                "25px";
+
+
+            number.style.transform =
+                "translateY(-50%)";
+
+
+            verticalScale.appendChild(
+                number
+            );
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   カメラ
+===================================================== */
+
+async function startCamera(){
+
+    try{
+
+        stream =
+            await navigator.mediaDevices
+                .getUserMedia({
+
+                    video:{
+                        facingMode:{
+                            ideal:"environment"
+                        }
+                    },
+
+                    audio:false
+
+                });
+
+
+        video.srcObject =
+            stream;
+
+
+        cameraTrack =
+            stream.getVideoTracks()[0];
+
+
+        await video.play();
+
+
+        status.textContent =
+            "カメラOK";
+
+
+    }catch(error){
+
+        console.error(error);
+
+
+        status.textContent =
+            "カメラへのアクセスを許可してください";
+
+    }
+
+}
+
+
+/* =====================================================
+   倍率変更
+===================================================== */
+
+async function changeZoom(value){
+
+    currentZoom =
+        value;
+
+
+    /*
+        ボタン表示
+    */
+
+    document
+        .querySelectorAll(".zoomButton")
+        .forEach(button =>{
+
+            button.classList.toggle(
+
+                "active",
+
+                Number(
+                    button.dataset.zoom
+                ) === value
+
+            );
+
+        });
+
+
+    /*
+        カメラ側のズーム
+    */
+
+    let hardwareZoom =
+        false;
+
+
+    try{
+
+        const capabilities =
+            cameraTrack
+                .getCapabilities();
+
+
+        if(
+            capabilities.zoom
+        ){
+
+            const min =
+                capabilities.zoom.min;
+
+            const max =
+                capabilities.zoom.max;
+
+
+            const actualZoom =
+                Math.max(
+                    min,
+                    Math.min(
+                        max,
+                        value
+                    )
+                );
+
+
+            await cameraTrack
+                .applyConstraints({
+
+                    advanced:[
+                        {
+                            zoom:
+                                actualZoom
+                        }
+                    ]
+
+                });
+
+
+            hardwareZoom =
+                true;
+
+        }
+
+    }catch(error){
+
+        hardwareZoom =
+            false;
+
+    }
+
+
+    /*
+        ハードウェアズーム非対応なら
+        CSS拡大
+    */
+
+    if(!hardwareZoom){
+
+        video.style.transform =
+            `scale(${value})`;
+
+    }else{
+
+        video.style.transform =
+            "none";
+
+    }
+
+
+    /*
+        ★重要
+        倍率変更時に
+        レティクルも再生成
+    */
+
+    createReticle();
+
+
+    status.textContent =
+        `倍率 ${value}×`;
+
+}
+
+
+/* =====================================================
+   倍率ボタン
+===================================================== */
+
+document
+    .querySelectorAll(".zoomButton")
+    .forEach(button =>{
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                changeZoom(
+                    Number(
+                        button.dataset.zoom
+                    )
+                );
+
+            }
+        );
+
+    });
+
+
+/* =====================================================
+   写真撮影
+===================================================== */
+
+document
+    .getElementById("shutter")
+    .addEventListener(
+        "click",
+        () => {
+
+            if(
+                !video.videoWidth
+            ){
+
+                return;
+
+            }
+
+
+            /*
+                写真用Canvas
+            */
+
+            const canvas =
+                document.createElement(
+                    "canvas"
+                );
+
+
+            const width =
+                video.videoWidth;
+
+
+            const height =
+                video.videoHeight;
+
+
+            canvas.width =
+                width;
+
+
+            canvas.height =
+                height;
+
+
+            const ctx =
+                canvas.getContext("2d");
+
+
+            /*
+            ========================
+            カメラ画像
+            ========================
+            */
+
+            ctx.drawImage(
+
+                video,
+
+                0,
+                0,
+
+                width,
+                height
+
+            );
+
+
+            /*
+            ========================
+            写真上のレティクル
+            ========================
+            */
+
+            const cx =
+                width / 2;
+
+
+            const cy =
+                height / 2;
+
+
+            ctx.strokeStyle =
+                "rgba(0,255,80,.85)";
+
+
+            ctx.fillStyle =
+                "rgba(190,255,205,.95)";
+
+
+            ctx.lineWidth =
+                Math.max(
+                    1,
+                    width / 1600
+                );
+
+
+            /*
+                中央線
+            */
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                0,
+                cy
+            );
+
+            ctx.lineTo(
+                width,
+                cy
+            );
+
+            ctx.moveTo(
+                cx,
+                0
+            );
+
+            ctx.lineTo(
+                cx,
+                height
+            );
+
+            ctx.stroke();
+
+
+            /*
+                写真の横幅を基準に
+                画面上のシュトリヒ間隔を決める。
+
+                currentZoomも反映。
+            */
+
+            const spacing =
+                (
+                    width / 1000
+                ) *
+                currentZoom;
+
+
+            /*
+            ========================
+            目盛り
+            ========================
+            */
+
+            for(
+                let strich = -50;
+                strich <= 50;
+                strich += 5
+            ){
+
+                const major =
+                    strich % 10 === 0;
+
+
+                /*
+                横
+                */
+
+                const x =
+                    cx +
+                    strich *
+                    spacing;
+
+
+                if(
+                    x >= 0 &&
+                    x <= width
+                ){
+
+                    const tickHeight =
+                        major
+                        ? 22
+                        : 12;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        x,
+                        cy -
+                        tickHeight
+                    );
+
+                    ctx.lineTo(
+                        x,
+                        cy +
+                        tickHeight
+                    );
+
+                    ctx.stroke();
+
+
+                    /*
+                        数字
+                    */
+
+                    if(
+                        major &&
+                        strich !== 0
+                    ){
+
+                        ctx.font =
+                            `${Math.max(
+                                14,
+                                width / 90
+                            )}px sans-serif`;
+
+
+                        ctx.fillText(
+
+                            Math.abs(
+                                strich
+                            ),
+
+                            x + 4,
+
+                            cy + 38
+
+                        );
+
+                    }
+
+                }
+
+
+                /*
+                縦
+                */
+
+                const y =
+                    cy -
+                    strich *
+                    spacing;
+
+
+                if(
+                    y >= 0 &&
+                    y <= height
+                ){
+
+                    const tickWidth =
+                        major
+                        ? 22
+                        : 12;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        cx -
+                        tickWidth,
+                        y
+                    );
+
+                    ctx.lineTo(
+                        cx +
+                        tickWidth,
+                        y
+                    );
+
+                    ctx.stroke();
+
+
+                    /*
+                        数字
+                    */
+
+                    if(
+                        major &&
+                        strich !== 0
+                    ){
+
+                        ctx.font =
+                            `${Math.max(
+                                14,
+                                width / 90
+                            )}px sans-serif`;
+
+
+                        ctx.fillText(
+
+                            Math.abs(
+                                strich
+                            ),
+
+                            cx + 30,
+
+                            y + 5
+
+                        );
+
+                    }
+
+                }
+
+            }
+
+
+            /*
+            ========================
+            中央円
+            ========================
+            */
+
+            ctx.beginPath();
+
+            ctx.arc(
+
+                cx,
+                cy,
+
+                6,
+
+                0,
+                Math.PI * 2
+
+            );
+
+            ctx.stroke();
+
+
+            /*
+            ========================
+            写真表示
+            ========================
+            */
+
+            const image =
+                document.getElementById(
+                    "previewImage"
+                );
+
+
+            image.src =
+                canvas.toDataURL(
+                    "image/jpeg",
+                    0.92
+                );
+
+
+            document
+                .getElementById("preview")
+                .style.display =
+                    "flex";
+
+        }
+    );
+
+
+/* =====================================================
+   写真確認から戻る
+===================================================== */
+
+document
+    .getElementById("closePreview")
+    .addEventListener(
+        "click",
+        () => {
+
+            document
+                .getElementById("preview")
+                .style.display =
+                    "none";
+
+        }
+    );
+
+
+/* =====================================================
+   起動
+===================================================== */
+
+createReticle();
+
+startCamera();
+
+</script>
+
+</body>
+</html>
